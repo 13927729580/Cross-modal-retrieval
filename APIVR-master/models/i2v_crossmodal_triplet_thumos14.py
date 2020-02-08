@@ -13,16 +13,6 @@ from models.base_model import BaseModel, BaseModelParams, BaseDataIter
 from models.flip_gradient import flip_gradient
 from sklearn.metrics.pairwise import cosine_similarity
 
-def Normalize(data):
-    l = []
-    for i in range(len(data)):
-        m = data[i].mean()
-        max = data[i].max()
-        min = data[i].min()
-        re = data[i]-m/(max-min)
-        l.append(re)
-    return np.array(l)
-
 class DataIter(BaseDataIter):
     def __init__(self, batch_size):
         BaseDataIter.__init__(self, batch_size)
@@ -50,10 +40,12 @@ class DataIter(BaseDataIter):
 
 
         mean_i = self.train_img_vecs.mean()
-        self.train_video_feats = Normalize(self.train_video_feats)
-        self.test_video_feats = Normalize(self.test_video_feats)
+        mean_v = self.train_video_feats.mean()
+        self.train_video_feats = (self.train_video_feats - mean_v) / (self.train_video_feats.max() - self.train_video_feats.min())
+        self.test_video_feats = (self.test_video_feats - mean_v) / (self.train_video_feats.max() - self.train_video_feats.min())
         self.train_img_vecs = (self.train_img_vecs - mean_i) / (self.train_img_vecs.max() - self.train_img_vecs.min())
         self.test_img_vecs = (self.test_img_vecs - mean_i) / (self.train_img_vecs.max() - self.train_img_vecs.min())
+
         self.num_train_batch = len(self.train_video_feats) // self.batch_size
         self.num_test_batch = len(self.test_video_feats) // self.batch_size
 
@@ -79,6 +71,8 @@ class ModelParams(BaseModelParams):
         self.epoch = 200
         self.margin = 0.01
         self.alpha = 1e-2
+        self.beta = 10
+        self.lamda = 1e-3
         self.batch_size = 70
         self.visual_feat_dim = 4096
         self.word_vec_dim = 128
@@ -139,8 +133,9 @@ class AdvCrossModalSimple(BaseModel):
         self.logits_v = self.label_classifier(self.emb_v, reuse=True)
         self.label_loss1 = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y, logits=self.logits_v))
         self.label_loss2 = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y, logits=self.logits_w))
-        self.trans_loss = tf.reduce_mean(tran2 - self.trans)
-        self.emb_loss = 0.01 * self.label_loss1 + self.label_loss2 + 10 * self.triplet_loss + self.model_params.alpha * self.trans_loss
+        
+        self.trans_loss = tf.reduce_mean(tf.square(tran2 - self.trans))
+        self.emb_loss = self.model_params.beta * self.label_loss1 + self.label_loss2 + self.model_params.alpha * self.triplet_loss + self.model_params.lamda * self.trans_loss
         self.emb_v_class = self.domain_classifier(self.emb_v, self.l)
         self.emb_w_class = self.domain_classifier(self.emb_w, self.l, reuse=True)
 
@@ -160,12 +155,10 @@ class AdvCrossModalSimple(BaseModel):
         self.rf_vars = [v for v in self.t_vars if 'rf_' in v.name]
 
     def transpose(self, X):
-        net = tf.nn.tanh(slim.fully_connected(X, 200, activation_fn=None, scope='rf_fc_0'))
-        net = tf.nn.tanh(slim.fully_connected(net, 100, activation_fn=None, scope='rf_fc_1'))
-        T = tf.nn.tanh(slim.fully_connected(net, 64, activation_fn=None, scope='rf_fc_2'))
+        net = tf.nn.tanh(slim.fully_connected(X, 64, activation_fn=None, scope='rf_fc_0')
+        T = tf.nn.tanh(slim.fully_connected(net, 64, activation_fn=None, scope='rf_fc_1'))
         T1 = tf.transpose(X, [0, 2, 1])
-        T2 = tf.matrix_inverse(tf.matmul(T1, X))
-        T3 = tf.matmul(tf.matmul(X, T2),T1)
+        T3 = tf.matmul(tf.matmul(X, tf.matrix_inverse(tf.matmul(T1, X))),T1)
         return T, T3
 
     def tripletloss(self, idata, X, margin):
@@ -182,9 +175,8 @@ class AdvCrossModalSimple(BaseModel):
     def matrix_embed(self, X, reuse=False):
         with slim.arg_scope([slim.fully_connected], activation_fn=None, reuse=reuse):
             net = tf.nn.tanh(slim.fully_connected(X,500, scope='vf_fc_0'))
-            net = tf.nn.tanh(slim.fully_connected(net,400, scope='vf_fc_1'))
-            net = tf.nn.tanh(slim.fully_connected(net, 200, scope='vf_fc_2'))
-            net = tf.nn.tanh(slim.fully_connected(net, 64, scope='vf_fc_3'))
+            net = tf.nn.tanh(slim.fully_connected(net,200, scope='vf_fc_1'))
+            net = tf.nn.tanh(slim.fully_connected(net, 64, scope='vf_fc_2'))
         return net
 
     def visual_embed(self, X, reuse=False):
@@ -199,10 +191,9 @@ class AdvCrossModalSimple(BaseModel):
 
     def label_embed(self, L, reuse=False):
         with slim.arg_scope([slim.fully_connected], activation_fn=None, reuse=reuse):
-            net = tf.nn.tanh(slim.fully_connected(L, 200, scope='le_fc_0'))
-            net = tf.nn.tanh(slim.fully_connected(net, 100,scope='le_fc_1'))
-            net = tf.nn.tanh(slim.fully_connected(net, 80,scope='le_fc_2'))
-            net = tf.nn.tanh(slim.fully_connected(net, 64, scope='le_fc_3'))
+            net = tf.nn.tanh(slim.fully_connected(L, 100, scope='le_fc_0'))
+            net = tf.nn.tanh(slim.fully_connected(net, 80,scope='le_fc_1'))
+            net = tf.nn.tanh(slim.fully_connected(net, 64, scope='le_fc_2'))
         return net
 
     def label_classifier(self, X, reuse=False):
@@ -214,8 +205,7 @@ class AdvCrossModalSimple(BaseModel):
         with slim.arg_scope([slim.fully_connected], activation_fn=None, reuse=reuse):
             E = flip_gradient(E, l)
             net = slim.fully_connected(E, 32, scope='dc_fc_0')
-            net = slim.fully_connected(net, 16, scope='dc_fc_1')
-            net = slim.fully_connected(net, 2, scope='dc_fc_2')
+            net = slim.fully_connected(net, 2, scope='dc_fc_1')
         return net
 
     def train(self, sess):
