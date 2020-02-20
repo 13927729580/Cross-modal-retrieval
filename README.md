@@ -10,5 +10,12 @@ More details refer to <https://github.com/czxxjtu/Hash-Learning.github.io>.
 Some details about hashing methods are in hashing-baseline-for-image-retrieval-master folder.
 #### Cross-modal retrieval methods
 The compared cross-modal retrieval methods are according to the paper:
+#### Datasets
+THUMOS'14 Dataset:
+https://pan.baidu.com/s/1H6c8nh_Hs7gVkhESpxtvAg 
+提取码：qp26 
+ActivityNet Dataset:
+https://pan.baidu.com/s/1P0jRecEmplCPaTPwFoOpVQ 
+提取码：pnw9
 
 [1] Bokun Wang, Yang Yang, Xing Xu, Alan Hanjalic, and Heng Tao Shen. "Adversarial Cross-Modal Retrieval". In Proceedings of 25th ACM International Conference on Multimedia (ACM MM), 2017.
