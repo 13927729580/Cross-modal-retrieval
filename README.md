@@ -11,10 +11,11 @@ Some details about hashing methods are in hashing-baseline-for-image-retrieval-m
 #### Cross-modal retrieval methods
 The compared cross-modal retrieval methods are according to the paper:
 #### Datasets
-THUMOS'14 Dataset:
+##### THUMOS'14 Dataset:
 https://pan.baidu.com/s/1H6c8nh_Hs7gVkhESpxtvAg 
 提取码：qp26 
-ActivityNet Dataset:
+
+##### ActivityNet Dataset:
 https://pan.baidu.com/s/1P0jRecEmplCPaTPwFoOpVQ 
 提取码：pnw9
 
