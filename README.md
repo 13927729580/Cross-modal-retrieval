@@ -20,9 +20,14 @@ https://pan.baidu.com/s/1P0jRecEmplCPaTPwFoOpVQ
 提取码：pnw9
 
 #### Bibtex
-When using images from our dataset, please cite our paper using the following BibTeX[<https://arxiv.org/abs/1911.10531>]：
+When using images from our dataset, please cite our paper using the following BibTeX[[PDF]](https://arxiv.org/abs/1911.10531)：
+
 @article{pba2020,
-  author    = {Ruicong Xu and Li Niu and Jianfu Zhang and Liqing Zhang},
-  title     = {A Proposal-based Approach for Activity Image-to-Video Retrieval},
-  journal   = {AAAI},
-  year      = {2020}}
+
+author    = {Ruicong Xu and Li Niu and Jianfu Zhang and Liqing Zhang},
+
+title     = {A Proposal-based Approach for Activity Image-to-Video Retrieval},
+
+journal   = {AAAI},
+
+year      = {2020}}
